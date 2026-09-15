@@ -5,22 +5,62 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   airport-service:
     build: ./airport-service
+    container_name: airport-service
     ports:
       - "8001:8001"
-    container_name: airport-service
 
   itinerary-service:
     build: ./itinerary-service
+    container_name: itinerary-service
     ports:
       - "8002:8002"
-    container_name: itinerary-service
     environment:
+      DATABASE_URL: "sqlite:////app/data/itinerary_service.db"
       AIRPORT_SERVICE_URL: "http://airport-service:8001"
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5672"
     depends_on:
-      - airport-service
-      - rabbitmq
+      airport-service:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - itinerary-db:/app/data
+
+  itinerary-outbox-worker:
+    build: ./itinerary-service
+    container_name: itinerary-outbox-worker
+    environment:
+      DATABASE_URL: "sqlite:////app/data/itinerary_service.db"
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+    command: ["python", "-m", "app.infrastructure.outbox_worker"]
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      itinerary-service:
+        condition: service_started
+    volumes:
+      - itinerary-db:/app/data
+
+  notification-function:
+    build: ./notification-function
+    container_name: notification-function
+    environment:
+      RABBITMQ_HOST: "rabbitmq"
+      RABBITMQ_PORT: "5672"
+      DATABASE_URL: "sqlite:///./notification.db"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  itinerary-db:
