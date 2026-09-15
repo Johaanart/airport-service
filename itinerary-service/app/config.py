@@ -2,7 +2,7 @@ import os
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite:///./itinerary_service.db"
+    "sqlite:////app/data/itinerary_service.db"
 )
 
 # URL del Airport Service.
