@@ -25,7 +25,8 @@ class ItineraryModel(Base):
 
     outbox_events = relationship(
         "OutboxEventModel",
-        back_populates="itinerary"
+        back_populates="itinerary",
+        cascade="all, delete-orphan",
     )
 
 
