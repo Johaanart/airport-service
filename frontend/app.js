@@ -136,7 +136,9 @@ async function loadItineraries() {
       const del = document.createElement("button");
       del.className = "danger";
       setText(del, "Eliminar");
-      del.addEventListener("click", () => deleteItinerary(it.id));
+      del.addEventListener("click", () => {
+        void deleteItinerary(it.id);
+      });
       actions.appendChild(del);
       tr.appendChild(actions);
 
@@ -151,7 +153,7 @@ async function deleteItinerary(id) {
   const res = await fetch(`${ITINERARY_API}/itineraries/${id}`, { method: "DELETE" });
   if (res.status === 204) {
     showMessage("Itinerario eliminado.", true);
-    loadItineraries();
+    await loadItineraries();
   } else {
     showMessage("No se pudo eliminar el itinerario.", false);
   }
@@ -179,7 +181,7 @@ document.getElementById("itinerary-form").addEventListener("submit", async (even
     if (res.status === 201) {
       showMessage("Itinerario creado. La notificación se procesa de forma asíncrona.", true);
       event.target.reset();
-      loadItineraries();
+      await loadItineraries();
     } else {
       showMessage(`No se pudo crear el itinerario: ${errorDetail(body)}`, false);
     }
@@ -192,5 +194,7 @@ document.getElementById("itinerary-form").addEventListener("submit", async (even
   await loadAirports();
   drawMap();
   fillSelects();
-  loadItineraries();
-})();
+  await loadItineraries();
+})().catch((err) => {
+  setText(document.getElementById("map-status"), `Error al iniciar la aplicación: ${err.message}`);
+});
