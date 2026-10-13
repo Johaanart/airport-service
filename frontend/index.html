@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sistema de Itinerarios Personales</title>
+  <style>
+    :root { --bg:#f5f6f8; --card:#fff; --ink:#1d2433; --muted:#667085; --accent:#1b6ef3; --danger:#c62828; --line:#e3e6eb; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+    header { padding:18px 24px; background:var(--ink); color:#fff; }
+    header h1 { margin:0; font-size:20px; }
+    header p { margin:4px 0 0; font-size:13px; color:#c5cad6; }
+    main { max-width:1100px; margin:0 auto; padding:20px; display:grid; gap:20px; }
+    section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; }
+    h2 { margin:0 0 12px; font-size:16px; }
+    #map { width:100%; height:480px; }
+    .status { font-size:13px; color:var(--muted); margin:8px 0 0; }
+    form { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; align-items:end; }
+    label { display:grid; gap:4px; font-size:13px; color:var(--muted); }
+    input, select { padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:14px; }
+    button { padding:9px 14px; border:0; border-radius:6px; background:var(--accent); color:#fff; font-size:14px; cursor:pointer; }
+    button.danger { background:var(--danger); padding:5px 10px; font-size:12px; }
+    table { width:100%; border-collapse:collapse; font-size:14px; }
+    th, td { text-align:left; padding:8px; border-bottom:1px solid var(--line); }
+    #msg { margin-top:10px; font-size:14px; }
+    .ok { color:#1b7f3b; } .err { color:var(--danger); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Sistema de Itinerarios Personales</h1>
+    <p>Mapa de aeropuertos (Airport Service) y gestión de itinerarios (Itinerary Service)</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Mapa de aeropuertos</h2>
+      <div id="map"></div>
+      <p class="status" id="map-status">Cargando aeropuertos...</p>
+    </section>
+
+    <section>
+      <h2>Crear itinerario</h2>
+      <form id="itinerary-form">
+        <label>Nombre del usuario
+          <input id="user_name" required maxlength="100">
+        </label>
+        <label>Aeropuerto de salida
+          <select id="departure" required></select>
+        </label>
+        <label>Aeropuerto de llegada
+          <select id="arrival" required></select>
+        </label>
+        <label>Fecha de viaje
+          <input id="travel_date" type="date" required>
+        </label>
+        <label>Duración (minutos)
+          <input id="duration" type="number" min="1" required>
+        </label>
+        <button type="submit">Crear itinerario</button>
+      </form>
+      <div id="msg"></div>
+    </section>
+
+    <section>
+      <h2>Itinerarios guardados</h2>
+      <table>
+        <thead>
+          <tr><th>Usuario</th><th>Salida</th><th>Llegada</th><th>Fecha</th><th>Min.</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody id="itineraries"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="plotly.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
