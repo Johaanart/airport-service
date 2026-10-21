@@ -12,13 +12,6 @@ function setText(el, text) {
   el.textContent = text;
 }
 
-// Algunos registros de API Colombia traen latitud y longitud invertidas
-// (ej. latitud -75.7, longitud 4.4). Colombia está en lat -5..14 y lon -82..-66.
-function normalizeCoords(lat, lon) {
-  const looksSwapped = lat < -20 && lon > -20 && lon < 20;
-  return looksSwapped ? { lat: lon, lon: lat } : { lat, lon };
-}
-
 async function loadAirports() {
   const ids = Array.from({ length: MAX_AIRPORT_ID }, (_, i) => String(i + 1));
   const results = await Promise.allSettled(
@@ -33,14 +26,13 @@ async function loadAirports() {
     if (r.status !== "fulfilled") return;
     const a = r.value;
     if (typeof a.latitude !== "number" || typeof a.longitude !== "number") return;
-    const { lat, lon } = normalizeCoords(a.latitude, a.longitude);
     airports.set(a.id, {
       id: a.id,
       name: a.name,
       city: a.city || "",
       iata: a.iata_code || "s/c",
-      lat,
-      lon,
+      lat: a.latitude,
+      lon: a.longitude,
     });
   });
 }

@@ -1,6 +1,11 @@
 """
 Adapter: traduce la estructura externa de API Colombia al modelo de dominio Airport.
 Es la única pieza del sistema que conoce el formato de la API externa.
+
+Particularidades de API Colombia que este adapter corrige:
+- El código OACI (ICAO) viene en el campo "oaciCode", no "icaoCode".
+- Latitud y longitud pueden venir invertidas (ej. latitude=-75.76, longitude=4.45
+  para Armenia). Se detecta con el rango geográfico de Colombia y se corrige.
 """
 import logging
 from typing import Optional
@@ -14,6 +19,27 @@ logger = logging.getLogger("airport_service")
 
 API_COLOMBIA_BASE_URL = "https://api-colombia.com/api/v1"
 DEFAULT_TIMEOUT_SECONDS = 5.0
+
+# Rango aproximado de Colombia, incluyendo San Andrés y Leticia.
+COLOMBIA_LAT_RANGE = (-5.0, 14.0)
+COLOMBIA_LON_RANGE = (-83.0, -66.0)
+
+
+def _in_range(value: float, bounds: tuple) -> bool:
+    return bounds[0] <= value <= bounds[1]
+
+
+def normalize_coordinates(latitude: Optional[float], longitude: Optional[float]):
+    """Devuelve (lat, lon); si API Colombia los trae invertidos, los intercambia."""
+    if latitude is None or longitude is None:
+        return latitude, longitude
+
+    as_given = _in_range(latitude, COLOMBIA_LAT_RANGE) and _in_range(longitude, COLOMBIA_LON_RANGE)
+    swapped = _in_range(longitude, COLOMBIA_LAT_RANGE) and _in_range(latitude, COLOMBIA_LON_RANGE)
+
+    if not as_given and swapped:
+        return longitude, latitude
+    return latitude, longitude
 
 
 class ApiColombiaAdapter(AirportProvider):
@@ -49,18 +75,16 @@ class ApiColombiaAdapter(AirportProvider):
 
     @staticmethod
     def _map_to_airport(data: dict) -> Airport:
-        """
-        Traduce la respuesta cruda de API Colombia al modelo interno.
-        Nota: valida los nombres exactos de los campos contra la respuesta real
-        (GET https://api-colombia.com/api/v1/Airport/{id}) antes de la entrega,
-        la API puede usar 'iataCode'/'icaoCode' o variantes similares.
-        """
+        """Traduce la respuesta cruda de API Colombia al modelo interno."""
+        latitude, longitude = normalize_coordinates(data.get("latitude"), data.get("longitude"))
+        city = data.get("city")
+
         return Airport(
             id=str(data.get("id")),
             name=data.get("name", ""),
             iata_code=data.get("iataCode") or data.get("iata_code"),
-            icao_code=data.get("icaoCode") or data.get("icao_code"),
-            latitude=data.get("latitude"),
-            longitude=data.get("longitude"),
-            city=(data.get("city") or {}).get("name") if isinstance(data.get("city"), dict) else data.get("city"),
+            icao_code=data.get("oaciCode") or data.get("icaoCode") or data.get("icao_code"),
+            latitude=latitude,
+            longitude=longitude,
+            city=city.get("name") if isinstance(city, dict) else city,
         )
