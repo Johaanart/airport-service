@@ -1,4 +1,31 @@
+version: '3.8'
+
 services:
+  # 1. API Gateway (Reverse Proxy unificado en puerto 80)
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    depends_on:
+      - airport-service
+      - itinerary-service
+      - frontend
+
+  # 2. Redis (Caché y resiliencia de Airport Service)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: always
+
+  # 3. RabbitMQ Broker
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq
@@ -11,12 +38,21 @@ services:
       timeout: 5s
       retries: 10
 
+  # 4. Airport Service (Conectado a Redis y API Colombia)
   airport-service:
     build: ./airport-service
     container_name: airport-service
     ports:
       - "8001:8001"
+    environment:
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      COLOMBIA_API_URL: "https://api-colombia.com/api/v1"
+    depends_on:
+      redis:
+        condition: service_healthy
 
+  # 5. Itinerary Service (CRUD + Outbox Pattern)
   itinerary-service:
     build: ./itinerary-service
     container_name: itinerary-service
@@ -35,6 +71,7 @@ services:
     volumes:
       - itinerary-db:/app/data
 
+  # 6. Outbox Worker (Publicador asíncrono hacia RabbitMQ)
   itinerary-outbox-worker:
     build: ./itinerary-service
     container_name: itinerary-outbox-worker
@@ -51,6 +88,7 @@ services:
     volumes:
       - itinerary-db:/app/data
 
+  # 7. Notification Function (Consumidor Serverless / Event-Driven)
   notification-function:
     build: ./notification-function
     container_name: notification-function
@@ -61,12 +99,13 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-  
+
+  # 8. Frontend (UI Mapa Interactivo con Plotly)
   frontend:
     build: ./frontend
     container_name: frontend
     ports:
-      - "3000:8080"
+      - "3001:8080"
     depends_on:
       - airport-service
       - itinerary-service
