@@ -66,18 +66,20 @@ Reglas de diseño que se respetan:
 
 ```mermaid
 flowchart TD
-    U[Usuario] --> FE[Frontend :3000<br/>nginx + Plotly]
+    U[Usuario] --> FE[Frontend :3000]
     FE -->|GET /airports/id| AS[Airport Service :8001]
-    FE -->|POST/GET/PUT/DELETE /itineraries| IS[Itinerary Service :8002]
-    IS -->|GET /airports/id<br/>valida aeropuerto| AS
-    AS -->|Adapter| API[API Colombia<br/>externa]
-    IS --> IDB[(Itinerary DB<br/>SQLite)]
-    IDB -.->|tabla outbox_events| W[Outbox Worker<br/>cada 5 s]
-    W -->|publica itinerary.created| MQ{{RabbitMQ}}
-    MQ --> NF[Notification Function]
-    NF --> NDB[(Notification DB<br/>SQLite)]
-```
+    FE -->|CRUD /itineraries| IS[Itinerary Service :8002]
 
+    IS -->|GET /airports/id - Validacion| AS
+    AS -->|Adapter HTTP| API[API Colombia externa]
+
+    IS --> IDB[(Itinerary DB - SQLite)]
+    IDB -.->|outbox_events| W[Outbox Worker - cada 5 segundos]
+
+    W -->|itinerary.created| MQ{{RabbitMQ}}
+    MQ --> NF[Notification Function]
+    NF --> NDB[(Notification DB - SQLite)]
+```
 ## 3. Diagrama de clases
 
 ```mermaid
